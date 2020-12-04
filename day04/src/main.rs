@@ -28,45 +28,6 @@ impl<'a> Passport<'a> {
     }
 }
 
-fn is_description_valid(description: &str) -> bool {
-    ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"]
-        .iter()
-        .all(|w| description.contains(w))
-}
-
-fn is_byr_valid(byr: usize) -> bool {
-    byr >= 1920 && byr <= 2002
-}
-
-fn is_iyr_valid(iyr: usize) -> bool {
-    iyr >= 2010 && iyr <= 2020
-}
-
-fn is_eyr_valid(eyr: usize) -> bool {
-    eyr >= 2020 && eyr <= 2030
-}
-
-fn is_hgt_valid(hgt: Height) -> bool {
-    match hgt {
-        Height::Centimeters(cm) => cm >= 150 && cm <= 193,
-        Height::Inches(inch) => inch >= 59 && inch <= 76,
-    }
-}
-
-fn is_hcl_valid(hcl: &str) -> bool {
-    hcl.len() == 6 && hcl.chars().all(|c| c.is_digit(16))
-}
-
-fn is_ecl_valid(ecl: &str) -> bool {
-    ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"]
-        .iter()
-        .any(|&c| c == ecl)
-}
-
-fn is_pid_valid(pid: &str) -> bool {
-    pid.len() == 9 && pid.parse::<usize>().is_ok()
-}
-
 impl<'a> From<&'a str> for Passport<'a> {
     fn from(description: &'a str) -> Self {
         let mut byr: usize = Default::default();
@@ -123,6 +84,45 @@ impl<'a> From<&'a str> for Passport<'a> {
             pid,
         }
     }
+}
+
+fn is_description_valid(description: &str) -> bool {
+    ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"]
+        .iter()
+        .all(|w| description.contains(w))
+}
+
+fn is_byr_valid(byr: usize) -> bool {
+    byr >= 1920 && byr <= 2002
+}
+
+fn is_iyr_valid(iyr: usize) -> bool {
+    iyr >= 2010 && iyr <= 2020
+}
+
+fn is_eyr_valid(eyr: usize) -> bool {
+    eyr >= 2020 && eyr <= 2030
+}
+
+fn is_hgt_valid(hgt: Height) -> bool {
+    match hgt {
+        Height::Centimeters(cm) => cm >= 150 && cm <= 193,
+        Height::Inches(inch) => inch >= 59 && inch <= 76,
+    }
+}
+
+fn is_hcl_valid(hcl: &str) -> bool {
+    hcl.len() == 6 && hcl.chars().all(|c| c.is_digit(16))
+}
+
+fn is_ecl_valid(ecl: &str) -> bool {
+    ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"]
+        .iter()
+        .any(|&c| c == ecl)
+}
+
+fn is_pid_valid(pid: &str) -> bool {
+    pid.len() == 9 && pid.parse::<usize>().is_ok()
 }
 
 fn part_2(valid_descriptions: &[Passport]) -> usize {
