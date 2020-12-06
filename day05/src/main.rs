@@ -1,49 +1,16 @@
 use std::fs;
+struct Range(u32, u32);
 
-struct Range {
-    min: u32,
-    max: u32,
-}
-
-impl Range {
-    fn get_lower_half(&mut self) {
-        self.max = (self.min + self.max) / 2;
-    }
-
-    fn get_upper_half(&mut self) {
-        self.min = (self.min + self.max + 1) / 2;
-    }
-}
-
-fn get_row(boarding_pass: &str) -> u32 {
-    boarding_pass
-        .chars()
-        .take(7)
-        .fold(&mut Range { min: 0, max: 127 }, |r, c| {
-            match c {
-                'F' => r.get_lower_half(),
-                'B' => r.get_upper_half(),
-                _ => panic!(),
-            };
-            r
-        })
-        .min
-}
-
-fn get_column(boarding_pass: &str) -> u32 {
-    boarding_pass
-        .chars()
-        .skip(7)
-        .take(3)
-        .fold(&mut Range { min: 0, max: 7 }, |r, c| {
-            match c {
-                'L' => r.get_lower_half(),
-                'R' => r.get_upper_half(),
-                _ => panic!(),
-            };
-            r
-        })
-        .min
+fn get_seat<I: Iterator<Item = char>>(vals: I, max: u32) -> u32 {
+    vals.fold(&mut Range(0, max), |range, c| {
+        match c {
+            'F' | 'L' => range.1 = (range.0 + range.1) / 2,
+            'B' | 'R' => range.0 = (range.0 + range.1 + 1) / 2,
+            _ => panic!(),
+        };
+        range
+    })
+    .0
 }
 
 fn part_1(seat_ids: &[u32]) -> u32 {
@@ -65,7 +32,10 @@ fn main() {
 
     let mut seat_ids: Vec<u32> = content
         .lines()
-        .map(|boarding_pass| get_row(boarding_pass) * 8 + get_column(boarding_pass))
+        .map(|boarding_pass| {
+            get_seat(boarding_pass.chars().take(7), 127) * 8
+                + get_seat(boarding_pass.chars().skip(7).take(3), 7)
+        })
         .collect();
     seat_ids.sort_unstable();
 
