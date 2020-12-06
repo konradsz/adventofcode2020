@@ -5,14 +5,12 @@ use std::fs;
 fn part_1(groups: &[&str]) -> usize {
     groups
         .iter()
-        .map(|group| {
-            let mut answers = HashSet::new();
-            for person in group.lines() {
-                person.chars().for_each(|c| {
-                    answers.insert(c);
-                });
-            }
-            answers.len()
+        .map(|group: &&str| {
+            group
+                .lines()
+                .flat_map(|line| line.chars())
+                .collect::<HashSet<char>>()
+                .len()
         })
         .sum()
 }
