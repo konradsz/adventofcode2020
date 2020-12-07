@@ -2,14 +2,14 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs;
 
-fn collect_bags(
-    found: &mut HashSet<String>,
+fn collect_bags<'a>(
+    found: &mut HashSet<&'a str>,
     current: &str,
-    bags: &HashMap<String, Vec<(u32, String)>>,
+    bags: &'a HashMap<String, Vec<(u32, String)>>,
 ) {
     bags.iter().for_each(|(k, v)| {
         if v.iter().any(|(_, other)| other == current) {
-            found.insert(k.clone());
+            found.insert(k);
 
             collect_bags(found, k, bags);
         }
@@ -29,7 +29,7 @@ fn count_bags(
 }
 
 fn part_1(bags: &HashMap<String, Vec<(u32, String)>>) -> usize {
-    let mut found: HashSet<String> = HashSet::new();
+    let mut found: HashSet<&str> = HashSet::new();
     collect_bags(&mut found, "shiny gold", &bags);
     found.len()
 }
