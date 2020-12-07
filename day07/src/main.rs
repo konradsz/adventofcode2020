@@ -7,13 +7,13 @@ fn collect_bags(
     current: &str,
     bags: &HashMap<String, Vec<(u32, String)>>,
 ) {
-    for (k, v) in bags.iter() {
+    bags.iter().for_each(|(k, v)| {
         if v.iter().any(|(_, other)| other == current) {
             found.insert(k.clone());
 
             collect_bags(found, k, bags);
         }
-    }
+    });
 }
 
 fn count_bags(
@@ -22,12 +22,22 @@ fn count_bags(
     current_count: u32,
     bags: &HashMap<String, Vec<(u32, String)>>,
 ) {
-    let next = bags.get(current).unwrap();
-
-    for (n, name) in next {
+    bags.get(current).unwrap().iter().for_each(|(n, name)| {
         *total += current_count * n;
         count_bags(total, name, current_count * *n, bags);
-    }
+    });
+}
+
+fn part_1(bags: &HashMap<String, Vec<(u32, String)>>) -> usize {
+    let mut found: HashSet<String> = HashSet::new();
+    collect_bags(&mut found, "shiny gold", &bags);
+    found.len()
+}
+
+fn part_2(bags: &HashMap<String, Vec<(u32, String)>>) -> u32 {
+    let mut total = 0;
+    count_bags(&mut total, "shiny gold", 1, &bags);
+    total
 }
 
 fn main() {
@@ -52,11 +62,6 @@ fn main() {
         bags.insert(name, inside);
     }
 
-    let mut found: HashSet<String> = HashSet::new();
-    collect_bags(&mut found, "shiny gold", &bags);
-    assert_eq!(found.len(), 101); // part_1
-
-    let mut total = 0;
-    count_bags(&mut total, "shiny gold", 1, &bags);
-    assert_eq!(total, 108_636);
+    assert_eq!(part_1(&bags), 101);
+    assert_eq!(part_2(&bags), 108_636);
 }
