@@ -2,7 +2,7 @@ use std::fs;
 
 enum StopCondition {
     Loop(i32),
-    Termination(i32),
+    Terminated(i32),
 }
 
 struct Console<'a> {
@@ -32,13 +32,13 @@ impl<'a> Console<'a> {
         }
     }
 
-    fn run_until_loop_or_terminated(&mut self) -> StopCondition {
+    fn run(&mut self) -> StopCondition {
         let mut executed_instructions = vec![];
         loop {
             if executed_instructions.contains(&self.pc) {
                 return StopCondition::Loop(self.accumulator);
             } else if self.pc as usize == self.program.len() {
-                return StopCondition::Termination(self.accumulator);
+                return StopCondition::Terminated(self.accumulator);
             }
 
             executed_instructions.push(self.pc);
@@ -62,7 +62,7 @@ impl<'a> Console<'a> {
 
 fn part_1(program: Vec<&str>) -> i32 {
     let mut console = Console::new(program);
-    if let StopCondition::Loop(acc) = console.run_until_loop_or_terminated() {
+    if let StopCondition::Loop(acc) = console.run() {
         return acc;
     }
     unreachable!()
@@ -82,7 +82,7 @@ fn part_2(program: Vec<&str>) -> i32 {
         program[i] = &new_instruction;
 
         let mut console = Console::new(program);
-        if let StopCondition::Termination(acc) = console.run_until_loop_or_terminated() {
+        if let StopCondition::Terminated(acc) = console.run() {
             return acc;
         }
     }
