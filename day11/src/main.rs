@@ -10,7 +10,7 @@ enum Field {
     Occupied,
 }
 
-type Layout = Vec<Vec<Field>>;
+type Layout = [Field];
 
 fn has_neighbour(x: usize, y: usize, offset: (i32, i32)) -> bool {
     (offset.0 >= 0 || x != 0)
@@ -33,7 +33,8 @@ fn count_occupied_adjacent(x: usize, y: usize, layout: &Layout) -> usize {
     .iter()
     .filter(|offset| has_neighbour(x, y, **offset))
     .filter(|offset| {
-        layout[(y as i32 + offset.1) as usize][(x as i32 + offset.0) as usize] == Field::Occupied
+        layout[(y as i32 + offset.1) as usize * GRID_WIDTH + (x as i32 + offset.0) as usize]
+            == Field::Occupied
     })
     .count()
 }
@@ -50,7 +51,7 @@ fn count_occupied_visible(x: usize, y: usize, layout: &Layout) -> usize {
         (1, 1),
     ]
     .iter()
-    .map(|dir| {
+    .filter(|dir| {
         let mut next = (x as i32, y as i32);
         loop {
             next.0 += dir.0;
@@ -63,87 +64,85 @@ fn count_occupied_visible(x: usize, y: usize, layout: &Layout) -> usize {
                 break;
             }
 
-            if layout[next.1 as usize][next.0 as usize] == Field::Occupied {
-                return 1;
-            } else if layout[next.1 as usize][next.0 as usize] == Field::Empty {
+            if layout[next.1 as usize * GRID_WIDTH + next.0 as usize] == Field::Occupied {
+                return true;
+            } else if layout[next.1 as usize * GRID_WIDTH + next.0 as usize] == Field::Empty {
                 break;
             }
         }
 
-        return 0;
+        false
     })
-    .sum()
+    .count()
 }
 
-fn shift_part_1(layout: &Layout) -> Layout {
-    let mut new_layout = Vec::with_capacity(GRID_HEIGHT);
+fn shift_part_1(layout: &Layout) -> Vec<Field> {
+    let mut new_layout = Vec::with_capacity(GRID_HEIGHT * GRID_WIDTH);
 
-    for (y, row) in layout.iter().enumerate() {
-        let mut new_row = Vec::with_capacity(GRID_WIDTH);
-        for (x, field) in row.iter().enumerate() {
-            match field {
-                Field::Floor => new_row.push(Field::Floor),
-                Field::Empty => {
-                    if count_occupied_adjacent(x, y, layout) == 0 {
-                        new_row.push(Field::Occupied)
-                    } else {
-                        new_row.push(Field::Empty)
-                    }
+    for (index, field) in layout.iter().enumerate() {
+        let x = index % GRID_WIDTH;
+        let y = index / GRID_WIDTH;
+
+        match field {
+            Field::Floor => new_layout.push(Field::Floor),
+            Field::Empty => {
+                if count_occupied_adjacent(x, y, layout) == 0 {
+                    new_layout.push(Field::Occupied)
+                } else {
+                    new_layout.push(Field::Empty)
                 }
-                Field::Occupied => {
-                    if count_occupied_adjacent(x, y, layout) >= 4 {
-                        new_row.push(Field::Empty)
-                    } else {
-                        new_row.push(Field::Occupied)
-                    }
+            }
+            Field::Occupied => {
+                if count_occupied_adjacent(x, y, layout) >= 4 {
+                    new_layout.push(Field::Empty)
+                } else {
+                    new_layout.push(Field::Occupied)
                 }
             }
         }
-        new_layout.push(new_row);
     }
 
     new_layout
 }
 
-fn shift_part_2(layout: &Layout) -> Layout {
-    let mut new_layout = Vec::with_capacity(GRID_HEIGHT);
+fn shift_part_2(layout: &Layout) -> Vec<Field> {
+    let mut new_layout = Vec::with_capacity(GRID_HEIGHT * GRID_WIDTH);
 
-    for (y, row) in layout.iter().enumerate() {
-        let mut new_row = Vec::with_capacity(GRID_WIDTH);
-        for (x, field) in row.iter().enumerate() {
-            match field {
-                Field::Floor => new_row.push(Field::Floor),
-                Field::Empty => {
-                    if count_occupied_visible(x, y, layout) == 0 {
-                        new_row.push(Field::Occupied)
-                    } else {
-                        new_row.push(Field::Empty)
-                    }
+    for (index, field) in layout.iter().enumerate() {
+        let x = index % GRID_WIDTH;
+        let y = index / GRID_WIDTH;
+
+        match field {
+            Field::Floor => new_layout.push(Field::Floor),
+            Field::Empty => {
+                if count_occupied_visible(x, y, layout) == 0 {
+                    new_layout.push(Field::Occupied)
+                } else {
+                    new_layout.push(Field::Empty)
                 }
-                Field::Occupied => {
-                    if count_occupied_visible(x, y, layout) >= 5 {
-                        new_row.push(Field::Empty)
-                    } else {
-                        new_row.push(Field::Occupied)
-                    }
+            }
+            Field::Occupied => {
+                if count_occupied_visible(x, y, layout) >= 5 {
+                    new_layout.push(Field::Empty)
+                } else {
+                    new_layout.push(Field::Occupied)
                 }
             }
         }
-        new_layout.push(new_row);
     }
 
     new_layout
 }
 
-fn run_until_stabilizes_and_count_occupied(layout: &Layout, shift: fn(&Layout) -> Layout) -> usize {
-    let mut previous = layout.clone();
+fn run_until_stabilizes_and_count_occupied(
+    layout: &Layout,
+    shift: fn(&Layout) -> Vec<Field>,
+) -> usize {
+    let mut previous = layout.to_owned();
     loop {
         let new = shift(&previous);
         if new == previous {
-            return new
-                .iter()
-                .map(|row| row.iter().filter(|&f| f == &Field::Occupied).count())
-                .sum();
+            return new.iter().filter(|&&f| f == Field::Occupied).count();
         }
         previous = new;
     }
@@ -162,15 +161,12 @@ fn main() {
 
     let layout = input
         .lines()
-        .map(|l| {
-            l.chars()
-                .map(|c| match c {
-                    '.' => Field::Floor,
-                    'L' => Field::Empty,
-                    '#' => Field::Occupied,
-                    _ => panic!("incorrect field"),
-                })
-                .collect::<Vec<_>>()
+        .flat_map(|l| l.chars())
+        .map(|c| match c {
+            '.' => Field::Floor,
+            'L' => Field::Empty,
+            '#' => Field::Occupied,
+            _ => panic!("incorrect field"),
         })
         .collect::<Vec<_>>();
 
