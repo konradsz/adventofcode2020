@@ -1,11 +1,11 @@
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs;
 use std::hash::{Hash, Hasher};
 
 #[derive(Hash)]
 struct Border<'a>(&'a str);
-
 struct Tile<'a>([&'a Border<'a>; 4]);
 
 struct Orientation {
@@ -15,12 +15,7 @@ struct Orientation {
     left: u64,
 }
 
-struct TileOrientations {
-    id: u64,
-    orientations: Vec<Orientation>,
-}
-
-fn generate_orientations(id: u64, tile: &Tile) -> TileOrientations {
+fn generate_orientations(tile: &Tile) -> Vec<Orientation> {
     let calculate_hash = |border: &Border| {
         let mut hasher = DefaultHasher::new();
         border.hash(&mut hasher);
@@ -59,20 +54,19 @@ fn generate_orientations(id: u64, tile: &Tile) -> TileOrientations {
         &top, tile.0[3], &bottom, tile.0[1],
     ])));
 
-    TileOrientations { id, orientations }
+    orientations
 }
 
-fn part_1(tile_orientations: &Vec<TileOrientations>) -> u64 {
+fn part_1(tile_orientations: &HashMap<u64, Vec<Orientation>>) -> u64 {
     let mut result = HashSet::new();
-    for (i, tile_orientation_primary) in tile_orientations.iter().enumerate() {
-        'outer: for corner_candidate in tile_orientation_primary.orientations.iter() {
-            for (j, tile_orientation_secondary) in tile_orientations.iter().enumerate() {
+    for (i, tile_orientation_primary) in tile_orientations.iter() {
+        'outer: for corner_candidate in tile_orientation_primary.iter() {
+            for (j, tile_orientation_secondary) in tile_orientations.iter() {
                 if i == j {
                     continue;
                 }
 
                 if tile_orientation_secondary
-                    .orientations
                     .iter()
                     .any(|neighbour_candidate| {
                         neighbour_candidate.bottom == corner_candidate.top
@@ -82,7 +76,7 @@ fn part_1(tile_orientations: &Vec<TileOrientations>) -> u64 {
                     continue 'outer;
                 }
             }
-            result.insert(tile_orientation_primary.id);
+            result.insert(*i);
         }
     }
 
@@ -92,7 +86,7 @@ fn part_1(tile_orientations: &Vec<TileOrientations>) -> u64 {
 fn main() {
     let content = fs::read_to_string("input").unwrap();
 
-    let mut orientations = Vec::new();
+    let mut orientations = HashMap::new();
     let mut tile_str: Vec<&str> = Vec::new();
     let mut tile_id = 0;
     for line in content.lines() {
@@ -117,15 +111,15 @@ fn main() {
                 .iter()
                 .map(|&line| line.chars().next().unwrap())
                 .collect::<String>();
-            orientations.push(generate_orientations(
+            orientations.insert(
                 tile_id,
-                &Tile([
+                generate_orientations(&Tile([
                     &Border(tile_str[0]),
                     &Border(&right),
                     &Border(tile_str[9]),
                     &Border(&left),
-                ]),
-            ));
+                ])),
+            );
         }
     }
 
