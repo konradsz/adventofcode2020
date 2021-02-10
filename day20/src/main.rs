@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
+const WIDTH: usize = 10;
+
 type Orientation = (bool, u8);
 const ORIENTATIONS: [Orientation; 8] = [
     (false, 0),
@@ -163,20 +165,43 @@ fn find_neighbours(
 }
 
 fn part_1(picture: &Picture) -> usize {
-    let min_y = picture.keys().map(|k| k.0).min().unwrap();
-    let max_y = picture.keys().map(|k| k.0).max().unwrap();
-    let min_x = picture.keys().map(|k| k.1).min().unwrap();
-    let max_x = picture.keys().map(|k| k.1).max().unwrap();
+    let min_x = picture.keys().map(|k| k.0).min().unwrap();
+    let max_x = picture.keys().map(|k| k.0).max().unwrap();
+    let min_y = picture.keys().map(|k| k.1).min().unwrap();
+    let max_y = picture.keys().map(|k| k.1).max().unwrap();
 
-    let top_left_id = picture.get(&(min_y, min_x)).unwrap().id;
-    let top_right_id = picture.get(&(min_y, max_x)).unwrap().id;
-    let bottom_left_id = picture.get(&(max_y, min_x)).unwrap().id;
-    let bottom_right_id = picture.get(&(max_y, max_x)).unwrap().id;
+    let top_left_id = picture.get(&(min_x, min_y)).unwrap().id;
+    let top_right_id = picture.get(&(max_x, min_y)).unwrap().id;
+    let bottom_left_id = picture.get(&(min_x, max_y)).unwrap().id;
+    let bottom_right_id = picture.get(&(max_x, max_y)).unwrap().id;
 
     top_left_id as usize
         * top_right_id as usize
         * bottom_left_id as usize
         * bottom_right_id as usize
+}
+
+fn merge_tiles(picture: &Picture) -> Vec<String> {
+    let min_x = picture.keys().map(|k| k.0).min().unwrap();
+    let max_x = picture.keys().map(|k| k.0).max().unwrap();
+    let min_y = picture.keys().map(|k| k.1).min().unwrap();
+    let max_y = picture.keys().map(|k| k.1).max().unwrap();
+    let width_in_tiles = (max_x - min_x + 1) as usize;
+
+    let mut merged = vec![String::default(); width_in_tiles * WIDTH - 2 * width_in_tiles];
+
+    for (iy, y) in (min_y..=max_y).enumerate() {
+        for x in min_x..=max_x {
+            let tile = &picture.get(&(x, y)).unwrap().data;
+            for (current_tile_y, line) in tile.iter().skip(1).take(WIDTH - 2).enumerate() {
+                let current_line = merged.get_mut(iy * (WIDTH - 2) + current_tile_y).unwrap();
+                let stripped_line = &line[1..line.len() - 1];
+                (*current_line) += stripped_line;
+            }
+        }
+    }
+
+    merged
 }
 
 fn main() {
@@ -198,7 +223,7 @@ fn main() {
             tile_data.push(line.to_owned());
         }
 
-        if tile_data.len() == 10 {
+        if tile_data.len() == WIDTH {
             tiles.push(Tile::new(tile_id, tile_data));
             tile_data = Vec::new();
         }
@@ -206,4 +231,6 @@ fn main() {
 
     let picture = reassemble_picture(&tiles);
     assert_eq!(108_603_771_107_737, part_1(&picture));
+
+    merge_tiles(&picture);
 }
