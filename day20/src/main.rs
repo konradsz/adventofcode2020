@@ -15,6 +15,14 @@ const ORIENTATIONS: [Orientation; 8] = [
     (true, 3),
 ];
 
+const SEA_MONSTER: [&str; 3] = [
+    "                  # ",
+    "#    ##    ##    ###",
+    " #  #  #  #  #  #   ",
+];
+const SEA_MONSTER_WIDTH: usize = 20;
+const SEA_MONSTER_HEIGHT: usize = 3;
+
 #[derive(Clone)]
 struct Tile {
     id: u32,
@@ -204,6 +212,98 @@ fn merge_tiles(picture: &Picture) -> Vec<String> {
     merged
 }
 
+fn get_monsters_indices() -> Vec<Vec<usize>> {
+    SEA_MONSTER
+        .iter()
+        .map(|line| {
+            line.char_indices()
+                .filter(|(_, c)| *c == '#')
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
+}
+
+fn find_monster(
+    picture: &Vec<String>,
+    monsters_indices: &Vec<Vec<usize>>,
+) -> Option<(usize, usize)> {
+    for y in 0..picture.len() - SEA_MONSTER_HEIGHT {
+        let line_1 = &picture[y];
+        let line_2 = &picture[y + 1];
+        let line_3 = &picture[y + 2];
+
+        for x in 0..line_1.len() - SEA_MONSTER_WIDTH {
+            let line_1_part = &line_1[x..x + SEA_MONSTER_WIDTH];
+            let line_2_part = &line_2[x..x + SEA_MONSTER_WIDTH];
+            let line_3_part = &line_3[x..x + SEA_MONSTER_WIDTH];
+
+            if monsters_indices[0]
+                .iter()
+                .all(|index| line_1_part.as_bytes()[*index] == b'#')
+                && monsters_indices[1]
+                    .iter()
+                    .all(|index| line_2_part.as_bytes()[*index] == b'#')
+                && monsters_indices[2]
+                    .iter()
+                    .all(|index| line_3_part.as_bytes()[*index] == b'#')
+            {
+                return Some((x, y));
+            }
+        }
+    }
+
+    None
+}
+
+fn replace_monster(
+    picture: &mut Vec<String>,
+    coordinates: (usize, usize),
+    monsters_indices: &Vec<Vec<usize>>,
+) {
+    for (i, line) in picture
+        .iter_mut()
+        .skip(coordinates.1)
+        .take(SEA_MONSTER_HEIGHT)
+        .enumerate()
+    {
+        let mut chars = line.chars().collect::<Vec<char>>();
+        monsters_indices[i]
+            .iter()
+            .for_each(|index| chars[coordinates.0 + *index] = 'O');
+        *line = chars.into_iter().collect();
+    }
+}
+
+fn find_all_monsters(picture: &mut Vec<String>) {
+    let monsters_indices = get_monsters_indices();
+    while let Some(coordinates) = find_monster(&picture, &monsters_indices) {
+        replace_monster(picture, coordinates, &monsters_indices);
+    }
+}
+
+fn part_2(picture: &Picture) -> usize {
+    let merged_picture = merge_tiles(&picture);
+    let mut fake_tile = Tile::new(0, merged_picture);
+
+    let monsters_indices = get_monsters_indices();
+    for orientation in &ORIENTATIONS {
+        let orientation_candidate = fake_tile.transform(orientation);
+        if find_monster(&orientation_candidate.data, &monsters_indices).is_some() {
+            fake_tile = orientation_candidate;
+            break;
+        }
+    }
+
+    find_all_monsters(&mut fake_tile.data);
+
+    fake_tile
+        .data
+        .iter()
+        .map(|line| line.chars().filter(|c| *c == '#').count())
+        .sum()
+}
+
 fn main() {
     let content = fs::read_to_string("input").unwrap();
 
@@ -231,6 +331,5 @@ fn main() {
 
     let picture = reassemble_picture(&tiles);
     assert_eq!(108_603_771_107_737, part_1(&picture));
-
-    merge_tiles(&picture);
+    assert_eq!(2_129, part_2(&picture));
 }
